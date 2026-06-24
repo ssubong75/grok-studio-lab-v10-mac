@@ -1784,7 +1784,12 @@ async function deleteBuildAccount(accountId) {
     return;
   }
   const label = account.email || account.label || "Build account";
-  if (!window.confirm(`Delete ${label}?`)) return;
+  const confirmed = await openGalleryActionDialog({
+    title: "Delete account",
+    message: `Delete ${label}?`,
+    confirmLabel: "Delete",
+  });
+  if (!confirmed) return;
   const data = await api("/api/accounts/delete", {
     method: "POST",
     body: JSON.stringify({ id: account.id }),
@@ -1806,7 +1811,12 @@ async function deleteImagineAccount(accountId) {
   }
   const account = state.imagineAccounts.find((entry) => entry.id === accountId);
   const label = account?.email || account?.label || "Imagine account";
-  if (!window.confirm(`Delete ${label}?`)) return;
+  const confirmed = await openGalleryActionDialog({
+    title: "Delete account",
+    message: `Delete ${label}?`,
+    confirmLabel: "Delete",
+  });
+  if (!confirmed) return;
   const data = await api("/api/imagine/delete", {
     method: "POST",
     body: JSON.stringify({ id: accountId }),

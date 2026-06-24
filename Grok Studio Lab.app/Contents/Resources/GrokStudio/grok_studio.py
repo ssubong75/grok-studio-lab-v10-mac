@@ -1917,7 +1917,9 @@ def merge_account_records(saved: list[dict[str, Any]], current_auth_file: str) -
         record["tier"] = normalize_account_tier(item.get("tier"))
         remember(record)
     current = account_record(current_auth_file)
-    if current["id"] not in records:
+    current_email = current.get("email")
+    current_is_usable = bool(current.get("exists") and isinstance(current_email, str) and current_email)
+    if current_is_usable and current["id"] not in records:
         remember(current)
     return [records[account_id] for account_id in order if account_id in records]
 
@@ -8618,7 +8620,9 @@ class StudioApp:
     def accounts(self) -> dict[str, Any]:
         data = read_accounts_file()
         current = account_record(self.auth_file)
-        active_id = data.get("active_id") or current["id"]
+        current_email = current.get("email")
+        current_is_usable = bool(current.get("exists") and isinstance(current_email, str) and current_email)
+        active_id = data.get("active_id") or (current["id"] if current_is_usable else "")
         records = merge_account_records(data.get("accounts", []), self.auth_file)
         hidden = hidden_account_ids()
         if active_id in hidden:
