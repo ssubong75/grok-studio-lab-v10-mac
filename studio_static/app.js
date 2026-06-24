@@ -5505,9 +5505,7 @@ async function setLibraryFolder() {
     body: JSON.stringify({ current }),
   });
   if (data.cancelled) return;
-  state.library = data.library || data.state?.library || state.library;
-  await loadState({ resetGallerySort: true });
-  toast("Library folder updated.");
+  window.location.reload();
 }
 
 function defaultLibraryFolderPromptPath() {
