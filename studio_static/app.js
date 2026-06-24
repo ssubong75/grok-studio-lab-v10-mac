@@ -428,6 +428,14 @@ async function loadState(options = {}) {
 
 function renderAuth(auth) {
   document.title = auth?.active ? "Grok Studio Lab" : "Grok Studio Lab - OAuth expired";
+  if (!hasAnyVisibleAccount(auth)) {
+    if (els.accountAvatar) els.accountAvatar.textContent = "A";
+    if (els.accountEmail) els.accountEmail.textContent = "Account";
+    if (els.accountPathInput && !els.accountPathInput.value && (state.cliAuthFile || auth?.auth_file)) {
+      els.accountPathInput.value = state.cliAuthFile || auth.auth_file;
+    }
+    return;
+  }
   const provider = state.generationProvider === "imagine" ? "imagine" : "build";
   const label = provider === "imagine"
     ? imagineAccountLabel()
@@ -437,6 +445,14 @@ function renderAuth(auth) {
   if (els.accountPathInput && !els.accountPathInput.value && (state.cliAuthFile || auth?.auth_file)) {
     els.accountPathInput.value = state.cliAuthFile || auth.auth_file;
   }
+}
+
+function hasAnyVisibleAccount(auth = state.auth) {
+  const hasBuild = Boolean(auth?.email)
+    || state.accounts.some((account) => account?.exists !== false && Boolean(account.email || account.label));
+  const hasImagine = Boolean(state.imagine?.connected || state.imagine?.email || state.imagine?.label)
+    || state.imagineAccounts.some((account) => Boolean(account.email || account.label));
+  return hasBuild || hasImagine;
 }
 
 function buildAccountLabel(auth = state.auth) {
