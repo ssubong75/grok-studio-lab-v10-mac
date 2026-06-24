@@ -11653,40 +11653,41 @@ def linux_trash_files_dir() -> Path:
 
 
 def move_file_to_windows_recycle_bin(path: Path) -> None:
-    powershell = shutil.which("powershell.exe") or shutil.which("powershell")
-    if not powershell:
-        raise StudioError("Windows PowerShell is required to move files or folders to the Recycle Bin.", 500)
-    script = (
-        "Add-Type -AssemblyName Microsoft.VisualBasic; "
-        "$path = $env:GROK_STUDIO_TRASH_PATH; "
-        "if (Test-Path -LiteralPath $path -PathType Leaf) { "
-        "[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile("
-        "$path, "
-        "[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs, "
-        "[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin"
-        ") } elseif (Test-Path -LiteralPath $path -PathType Container) { "
-        "[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory("
-        "$path, "
-        "[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs, "
-        "[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin"
-        ") }"
+    import ctypes
+    from ctypes import wintypes
+
+    FO_DELETE = 0x0003
+    FOF_NOCONFIRMATION = 0x0010
+    FOF_ALLOWUNDO = 0x0040
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [
+            ("hwnd", wintypes.HWND),
+            ("wFunc", wintypes.UINT),
+            ("pFrom", wintypes.LPCWSTR),
+            ("pTo", wintypes.LPCWSTR),
+            ("fFlags", wintypes.USHORT),
+            ("fAnyOperationsAborted", wintypes.BOOL),
+            ("hNameMappings", wintypes.LPVOID),
+            ("lpszProgressTitle", wintypes.LPCWSTR),
+        ]
+
+    source = str(path) + "\0\0"
+    operation = SHFILEOPSTRUCTW(
+        None,
+        FO_DELETE,
+        source,
+        None,
+        FOF_ALLOWUNDO | FOF_NOCONFIRMATION,
+        False,
+        None,
+        None,
     )
-    env = os.environ.copy()
-    env["GROK_STUDIO_TRASH_PATH"] = str(path)
-    result = subprocess.run(
-        [powershell, "-NoProfile", "-Command", script],
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
-        env=env,
-    )
-    if result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip() or "Recycle Bin move failed"
-        raise StudioError(f"Could not move to Recycle Bin: {detail}", 500)
+    result = ctypes.windll.shell32.SHFileOperationW(ctypes.byref(operation))
+    if result:
+        raise StudioError(f"Could not move to Recycle Bin: Windows shell error {result}", 500)
+    if operation.fAnyOperationsAborted:
+        raise StudioError("Recycle Bin move was cancelled.", 400)
 
 
 def media_url(path: Path) -> str:

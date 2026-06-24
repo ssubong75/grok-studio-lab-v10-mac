@@ -4101,6 +4101,10 @@ document.addEventListener("keydown", (event) => {
     if (event.shiftKey && !event.altKey) redoView();
     else undoView();
   }
+  if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "y") {
+    event.preventDefault();
+    redoView();
+  }
   if (mod && event.key.toLowerCase() === "a") {
     event.preventDefault();
     showSelectionOverlay({ x: 0, y: 0, width: paintCanvas?.width || 1, height: paintCanvas?.height || 1 });
@@ -4155,7 +4159,8 @@ document.addEventListener("keydown", (event) => {
     }
   }
   if (event.key === "Enter" && currentTool === "crop") applyCrop();
-  if (event.key === "Delete" || event.key === "Backspace") {
+  if (!isTyping && (event.key === "Delete" || event.key === "Backspace")) {
+    event.preventDefault();
     deleteCurrentEdit();
   }
 });
